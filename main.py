@@ -1,34 +1,28 @@
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import ParseMode
-from aiogram.utils import executor
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
-import aiogram
+import asyncio
+import sys
+from aiogram import Bot, Dispatcher, Router
+from aiogram.types import Message, CallbackQuery
+from aiogram.types.inline_keyboard_button import InlineKeyboardButton
+from aiogram.types.inline_keyboard_markup import InlineKeyboardMarkup
+from aiogram.enums import ParseMode
+from aiogram.filters import Command, CommandStart
 import logging
-logging.basicConfig(level=logging.INFO)
 
-print(aiogram.__version__)
+from aiogram.utils.keyboard import KeyboardBuilder
 
-API_TOKEN =  "6673961294:AAGhUWqKwfzlSxYEzxh_kiRM9DnFMzekkhI"
-bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot)
+TOKEN = '6673961294:AAGhUWqKwfzlSxYEzxh_kiRM9DnFMzekkhI'
 
+dp = Dispatcher()
 
 
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
-# Initialize bot and dispatcher
-bot = Bot(token=API_TOKEN)
-
-
-@dp.message_handler(commands=['start', 'help'])
-async def send_welcome(message: types.Message):
-    markup = InlineKeyboardMarkup(row_width=2)
-    item1 = InlineKeyboardButton("Daily Check In", callback_data='check_in')
-    item2 = InlineKeyboardButton("Daily Gratitude", callback_data='gratitude')
-    item3 = InlineKeyboardButton("CBT Diary", callback_data='cbt_diary')
-    markup.add(item1, item2, item3)
-
+@dp.message(Command('help', 'start'))
+async def command_start_handler(message: Message) -> None:
+    item1 = InlineKeyboardButton(text="Daily Check In", callback_data='check_in')
+    item2 = InlineKeyboardButton(text="Daily Gratitude", callback_data='gratitude')
+    item3 = InlineKeyboardButton(text="CBT Diary", callback_data='cbt_diary')
+    builder = KeyboardBuilder(button_type=InlineKeyboardButton)
+    builder.add(item1, item2, item3)
+    markup = InlineKeyboardMarkup(inline_keyboard=builder.export())
     await message.answer("Hello! I'm your AI Consultant. How can I assist you today?", reply_markup=markup)
 
 
@@ -38,21 +32,35 @@ CHECK_IN_STATE = {
     'question3': 'Describe a moment that made you ___ today?'
 }
 
-@dp.callback_query_handler(lambda c: c.data == 'check_in')
-async def process_callback_check_in(callback_query: types.CallbackQuery):
-    await bot.answer_callback_query(callback_query.id)
-    await bot.send_message(callback_query.from_user.id, CHECK_IN_STATE['question1'])
-    # Note: You'd typically have some state management to keep track of which question the user is on.
+
+@dp.callback_query(lambda c: c.data == 'check_in')
+async def process_callback_check_in(callback_query: CallbackQuery):
+    print(callback_query.id)
+    await callback_query.answer(CHECK_IN_STATE['question1'])
 
 
+@dp.callback_query(lambda c: c.data == 'gratitude')
+async def process_callback_gratitude(callback_query: CallbackQuery):
+    print(callback_query.id)
+    await callback_query.answer(CHECK_IN_STATE['question2'])
 
 
+@dp.callback_query(lambda c: c.data == 'cbt_diary')
+async def process_callback_cbt_diary(callback_query: CallbackQuery):
+    print(callback_query.id)
+    await callback_query.answer(CHECK_IN_STATE['question3'])
 
 
-if __name__ == '__main__':
-    from aiogram import executor
+async def main() -> None:
+    # Initialize Bot instance with a default parse mode which will be passed to all API calls
+    bot = Bot(TOKEN, parse_mode=ParseMode.HTML)
+    # And the run events dispatching
+    await dp.start_polling(bot)
 
-    executor.start_polling(dp, skip_updates=True)
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    asyncio.run(main())
 
 # Define the language choices
 # def get_language_keyboard():
@@ -184,7 +192,6 @@ if __name__ == '__main__':
 #     await bot.answer_callback_query(callback_query.id)
 #
 #
-
 
 
 #
